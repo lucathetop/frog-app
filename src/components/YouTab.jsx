@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 
-export default function YouTab({ user, profile }) {
-  const [photos, setPhotos] = useState([]);
+export default function YouTab({ user, profile, onProfileUpdate }) {
+  const [photos, setPhotos]         = useState([]);
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName]       = useState("");
+  const [saving, setSaving]         = useState(false);
 
   useEffect(() => {
     supabase.from("photos").select("*")
@@ -11,6 +14,21 @@ export default function YouTab({ user, profile }) {
       .limit(9)
       .then(({ data }) => setPhotos(data||[]));
   }, [user.id]);
+
+  const handleSaveName = async () => {
+    if (!newName.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from("profiles")
+      .update({ username: newName.trim() })
+      .eq("id", user.id);
+    if (error) {
+      alert("Couldn't save name: " + error.message);
+    } else {
+      setEditingName(false);
+      if (onProfileUpdate) onProfileUpdate();
+    }
+    setSaving(false);
+  };
 
   const total  = profile?.total_photos || 0;
   const spared = profile?.spared || 0;
@@ -22,17 +40,57 @@ export default function YouTab({ user, profile }) {
   return (
     <div style={{flex:1,overflowY:"auto",padding:"14px 14px 90px",
       display:"flex",flexDirection:"column",gap:16,minHeight:0}}>
+
+      {/* Profile */}
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",
         padding:"20px 0 8px",gap:4}}>
         <div style={{fontSize:52,animation:"bob 4s ease-in-out infinite"}}>🐸</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,
-          fontWeight:700,color:"#4a9457",marginTop:6}}>
-          {profile?.username||user.email?.split("@")[0]}
-        </div>
+
+        {editingName ? (
+          <div style={{display:"flex",gap:8,marginTop:8,alignItems:"center"}}>
+            <input
+              value={newName}
+              onChange={e=>setNewName(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&handleSaveName()}
+              placeholder="new name"
+              autoFocus
+              style={{background:"#faf7f2",border:"1.5px solid #6db87a",borderRadius:12,
+                padding:"8px 14px",fontSize:16,color:"#2c2318",outline:"none",
+                fontFamily:"'DM Sans',sans-serif",width:160,textAlign:"center"}}/>
+            <button onClick={handleSaveName} disabled={saving}
+              style={{background:"#6db87a",color:"white",border:"none",borderRadius:100,
+                padding:"8px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              {saving?"…":"save"}
+            </button>
+            <button onClick={()=>setEditingName(false)}
+              style={{background:"#ede5d8",color:"#8a7260",border:"none",borderRadius:100,
+                padding:"8px 16px",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              cancel
+            </button>
+          </div>
+        ) : (
+          <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,
+              fontWeight:700,color:"#4a9457"}}>
+              {profile?.username}
+            </div>
+            <button onClick={()=>{setNewName(profile?.username||"");setEditingName(true);}}
+              style={{background:"none",border:"none",cursor:"pointer",
+                fontSize:14,color:"#d4c4b0",padding:0}}>
+              ✏️
+            </button>
+          </div>
+        )}
+
         <div style={{fontSize:12,color:"#4a9457",fontWeight:500,opacity:.8}}>
           member for {days} day{days!==1?"s":""}
         </div>
+        <div style={{fontSize:11,color:"#8a7260",marginTop:2}}>
+          player id: {profile?.player_id}
+        </div>
       </div>
+
+      {/* Stats */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {[
           {num:profile?.streak||0,icon:"🔥",label:"day streak",bg:"#fff9f4"},
@@ -51,6 +109,8 @@ export default function YouTab({ user, profile }) {
           </div>
         ))}
       </div>
+
+      {/* Survival bar */}
       <div style={{background:"#fff9f4",borderRadius:16,padding:"16px 18px",
         boxShadow:"0 2px 12px rgba(44,35,24,0.06)"}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:13,
@@ -63,6 +123,8 @@ export default function YouTab({ user, profile }) {
             borderRadius:100,width:`${rate}%`,transition:"width 0.8s"}}/>
         </div>
       </div>
+
+      {/* Photo archive */}
       {photos.length>0&&(<>
         <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.5px",
           textTransform:"uppercase",color:"#2c2318"}}>your photos</div>
@@ -84,6 +146,7 @@ export default function YouTab({ user, profile }) {
           ))}
         </div>
       </>)}
+
       <button onClick={()=>supabase.auth.signOut()}
         style={{background:"none",border:"1.5px solid #ede5d8",borderRadius:12,
           padding:12,fontSize:13,fontWeight:500,color:"#8a7260",cursor:"pointer",
