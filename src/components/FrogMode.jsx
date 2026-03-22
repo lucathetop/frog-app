@@ -22,10 +22,23 @@ export default function FrogMode({ user, profile }) {
   const loadPhotos = useCallback(async () => {
     setLoading(true);
     try {
+      // get accepted friends
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("requester_id, receiver_id")
+        .eq("status", "accepted")
+        .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      const friendIds = (friendships||[]).map(f =>
+        f.requester_id === user.id ? f.receiver_id : f.requester_id
+      );
+
+      if (friendIds.length === 0) { setPhotos([]); setLoading(false); return; }
+
       const cutoff = new Date(Date.now() - 48*60*60*1000).toISOString();
       const { data: allPhotos } = await supabase
         .from("photos").select("*")
-        .neq("user_id", user.id)
+        .in("user_id", friendIds)
         .gte("posted_at", cutoff)
         .order("posted_at", { ascending: false });
 
@@ -91,7 +104,7 @@ export default function FrogMode({ user, profile }) {
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:26,
               fontWeight:900,color:"#ffffff"}}>All caught up</div>
             <div style={{fontSize:14,color:"rgba(255,255,255,0.7)",lineHeight:1.7}}>
-              Come back tomorrow<br/>when new photos drop.
+              Add friends to start judging<br/>their daily photos.
             </div>
             <button onClick={loadPhotos} style={{marginTop:8,
               background:"rgba(255,255,255,0.15)",border:"none",borderRadius:100,
