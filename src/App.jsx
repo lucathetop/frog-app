@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../supabase";
+import { supabase } from "./supabase";
 
 export default function LeaderboardTab({ user }) {
   const [leaders, setLeaders] = useState([]);
