@@ -19,6 +19,22 @@ export default function UploadModal({ user, profile, onClose, onPosted }) {
     if (!file) return;
     setUploading(true);
     try {
+      // check if already posted today
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const { data: existing } = await supabase
+        .from("photos")
+        .select("id")
+        .eq("user_id", user.id)
+        .gte("posted_at", today.toISOString())
+        .maybeSingle();
+
+      if (existing) {
+        alert("You already posted today! Come back tomorrow 🐸");
+        setUploading(false);
+        return;
+      }
+
       const ext  = file.name.split(".").pop();
       const path = `${user.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("photos").upload(path, file);
