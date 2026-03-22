@@ -40,12 +40,10 @@ export default function App() {
     }
   };
 
-  // Count pending photos
   useEffect(() => {
     if (!user) return;
     const count = async () => {
       try {
-        // get friends
         const { data: friendships } = await supabase
           .from("friendships")
           .select("requester_id, receiver_id")
@@ -67,12 +65,9 @@ export default function App() {
         const judgedSet = new Set((judged||[]).map(j=>j.photo_id));
         setPending(photos.filter(p=>!judgedSet.has(p.id)).length);
 
-        // count incoming friend requests
         const { data: requests } = await supabase
-          .from("friendships")
-          .select("id")
-          .eq("receiver_id", user.id)
-          .eq("status", "pending");
+          .from("friendships").select("id")
+          .eq("receiver_id", user.id).eq("status", "pending");
         setFriendRequests((requests||[]).length);
       } catch(e) { console.error(e); }
     };
@@ -90,8 +85,10 @@ export default function App() {
   };
 
   if (user === undefined) return (
-    <div style={{height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",background:"#fff9f4"}}>
-      <svg style={{animation:"bob 1.5s ease-in-out infinite",width:80,height:80}} viewBox="0 0 140 140" fill="none">
+    <div style={{height:"100dvh",display:"flex",alignItems:"center",
+      justifyContent:"center",background:"#fff9f4"}}>
+      <svg style={{animation:"bob 1.5s ease-in-out infinite",width:80,height:80}}
+        viewBox="0 0 140 140" fill="none">
         <ellipse cx="70" cy="90" rx="44" ry="36" fill="#6db87a"/>
         <ellipse cx="70" cy="65" rx="40" ry="34" fill="#7dcf8b"/>
         <circle cx="48" cy="50" r="17" fill="#4a9457"/><circle cx="92" cy="50" r="17" fill="#4a9457"/>
@@ -108,7 +105,6 @@ export default function App() {
     <div style={{height:"100dvh",maxHeight:"100dvh",display:"flex",flexDirection:"column",
       overflow:"hidden",background:"#faf7f2",fontFamily:"'DM Sans',sans-serif",color:"#2c2318"}}>
 
-      {/* TOP BAR */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
         padding:"16px 20px 12px",background:"#fff9f4",
         borderBottom:"1px solid #ede5d8",flexShrink:0}}>
@@ -122,21 +118,19 @@ export default function App() {
         </div>
       </div>
 
-      {/* CONTENT */}
       <div style={{flex:1,minHeight:0,overflow:"hidden",display:"flex",flexDirection:"column"}}>
         {tab==="frog"    && <FrogMode key={frogKey} user={user} profile={profile}/>}
         {tab==="friends" && <FriendsTab user={user} profile={profile}/>}
-        {tab==="you"     && <YouTab user={user} profile={profile}/>}
+        {tab==="you"     && <YouTab user={user} profile={profile} onProfileUpdate={()=>loadProfile(user)}/>}
       </div>
 
-      {/* BOTTOM NAV */}
       <div style={{position:"fixed",bottom:0,left:0,right:0,
         background:"rgba(250,247,242,0.96)",borderTop:"1px solid #ede5d8",
         display:"flex",padding:"8px 0 24px",backdropFilter:"blur(12px)",zIndex:100}}>
         {[
-          {id:"frog",    label:"frog",    icon:"🐸", badge:pending>0},
+          {id:"frog",    label:"frog",    icon:"🐸",      badge:pending>0},
           {id:"friends", label:"friends", icon:"friends", badge:friendRequests>0},
-          {id:"post",    label:"post",    icon:"📷", isPost:true},
+          {id:"post",    label:"post",    icon:"📷",      isPost:true},
           {id:"you",     label:"you",     icon:"👤"},
         ].map(item => (
           <button key={item.id}
@@ -154,9 +148,11 @@ export default function App() {
               <div style={{position:"relative"}}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <circle cx="9" cy="7" r="4" fill={tab==="friends"?"#4a9457":"#8a7260"}/>
-                  <path d="M2 21v-1a7 7 0 0 1 7-7h0" stroke={tab==="friends"?"#4a9457":"#8a7260"} strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M2 21v-1a7 7 0 0 1 7-7h0" stroke={tab==="friends"?"#4a9457":"#8a7260"}
+                    strokeWidth="2" strokeLinecap="round"/>
                   <circle cx="17" cy="9" r="3" fill={tab==="friends"?"#4a9457":"#8a7260"}/>
-                  <path d="M22 21v-1a5 5 0 0 0-5-5h0" stroke={tab==="friends"?"#4a9457":"#8a7260"} strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M22 21v-1a5 5 0 0 0-5-5h0" stroke={tab==="friends"?"#4a9457":"#8a7260"}
+                    strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 {item.badge&&(
                   <div style={{position:"absolute",top:-2,right:-2,width:8,height:8,
@@ -209,4 +205,3 @@ export default function App() {
     </div>
   );
 }
-
