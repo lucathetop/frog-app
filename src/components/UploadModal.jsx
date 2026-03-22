@@ -1,12 +1,25 @@
 import { useState } from "react";
 import { supabase } from "../supabase";
 
+const BANNED_WORDS = [
+  "fuck", "shit", "bitch", "asshole", "cunt", "dick", "pussy", "cock",
+  "faggot", "nigger", "nigga", "retard", "whore", "slut", "bastard",
+  "motherfucker", "wanker", "twat", "prick", "arse", "bollocks"
+];
+
+function containsBadWord(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return BANNED_WORDS.some(word => lower.includes(word));
+}
+
 export default function UploadModal({ user, profile, onClose, onPosted }) {
   const [file, setFile]           = useState(null);
   const [preview, setPreview]     = useState(null);
   const [caption, setCaption]     = useState("");
   const [uploading, setUploading] = useState(false);
   const [visible, setVisible]     = useState(true);
+  const [captionError, setCaptionError] = useState("");
 
   const handleFile = e => {
     const f = e.target.files[0];
@@ -17,17 +30,19 @@ export default function UploadModal({ user, profile, onClose, onPosted }) {
 
   const handlePost = async () => {
     if (!file) return;
+
+    if (containsBadWord(caption)) {
+      setCaptionError("Your caption contains inappropriate language. Please keep it clean! 🐸");
+      return;
+    }
+
     setUploading(true);
     try {
-      // check if already posted today
       const today = new Date();
       today.setHours(0,0,0,0);
       const { data: existing } = await supabase
-        .from("photos")
-        .select("id")
-        .eq("user_id", user.id)
-        .gte("posted_at", today.toISOString())
-        .maybeSingle();
+        .from("photos").select("id").eq("user_id", user.id)
+        .gte("posted_at", today.toISOString()).maybeSingle();
 
       if (existing) {
         alert("You already posted today! Come back tomorrow 🐸");
@@ -93,11 +108,17 @@ export default function UploadModal({ user, profile, onClose, onPosted }) {
         ):(
           <img src={preview} style={{width:"100%",height:220,objectFit:"cover",borderRadius:14}} alt="preview"/>
         )}
-        <textarea value={caption} onChange={e=>setCaption(e.target.value)}
-          placeholder="add a caption…" rows={2}
-          style={{background:"#faf7f2",border:"1.5px solid #ede5d8",borderRadius:12,
-            padding:"12px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:14,
-            color:"#2c2318",width:"100%",resize:"none",outline:"none",lineHeight:1.5}}/>
+        <div>
+          <textarea value={caption}
+            onChange={e=>{setCaption(e.target.value);setCaptionError("");}}
+            placeholder="add a caption…" rows={2}
+            style={{background:"#faf7f2",border:`1.5px solid ${captionError?"#e05c48":"#ede5d8"}`,
+              borderRadius:12,padding:"12px 14px",fontFamily:"'DM Sans',sans-serif",fontSize:14,
+              color:"#2c2318",width:"100%",resize:"none",outline:"none",lineHeight:1.5}}/>
+          {captionError && (
+            <div style={{fontSize:12,color:"#e05c48",marginTop:4}}>{captionError}</div>
+          )}
+        </div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={handleClose} disabled={uploading}
             style={{flex:1,background:"#ede5d8",border:"none",borderRadius:12,
