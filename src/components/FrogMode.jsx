@@ -22,7 +22,6 @@ export default function FrogMode({ user, profile }) {
   const loadPhotos = useCallback(async () => {
     setLoading(true);
     try {
-      // get accepted friends
       const { data: friendships } = await supabase
         .from("friendships")
         .select("requester_id, receiver_id")
@@ -64,9 +63,11 @@ export default function FrogMode({ user, profile }) {
       await supabase.from("judgments").insert({
         judged_by: user.id, photo_id: photo.id, verdict,
       });
-      await supabase.from("photos")
-        .update({ [verdict==="pass"?"spares":"eats"]: (photo[verdict==="pass"?"spares":"eats"]||0)+1 })
-        .eq("id", photo.id);
+      await supabase.rpc("increment_vote", {
+        photo_id: photo.id,
+        vote_type: verdict,
+        owner_id: photo.user_id,
+      });
     } catch(e) { console.error(e); }
     setJudgment({ verdict, uname: photo.username, photoUrl: photo.photo_url });
   };
